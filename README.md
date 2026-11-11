@@ -6,8 +6,3 @@ Predict tomorrow's daily Bassac River water level (Kandal, Cambodia).
 - `data/raw/` — original datasets (never edited)
 
 ## Run
-```bash
-cd src
-python3 prepare_data.py
-python3 train_models.py
-```
