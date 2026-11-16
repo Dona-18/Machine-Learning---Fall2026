@@ -58,44 +58,68 @@ source code/file and dataset are in Github
 
 ## Part 2 — The four datasets
 
+All 4 raw datasets live untouched in `data/raw/`. Cleaning scripts (`src/01`–`04`) convert them into aligned daily/dekadal tables in `data/processed/`.
+
 ### 2.1 Dataset 1: Bassac Water Level 2020–2024 (`Bassac_01_ori.csv`) — TARGET (Part 1)
 
 | Item | Details |
 |---|---|
 | **Role** | Primary target & historical water level (**19 Jun 2020 → 26 May 2024**) |
+| **Raw size & columns** | `127,606` rows × `2` columns: `Date` (`dd/mm/yyyy HH:MM` string) and `WL` (`float64`, m above sea level, Ha Tien datum) |
 | **Location** | Bassac River at Koh Thum, Kandal (`11.05 N, 105.07 E`) |
 | **Recorded by** | Institute of Technology of Cambodia (ITC) & IRD / UMR G-EAU (France) |
-| **Columns** | `Date` (`dd/mm/yyyy HH:MM`), `WL` (m above sea level, Ha Tien datum) |
-| **Frequency** | Every 15 minutes → averaged to **daily mean** (`1,331` valid days, `107` missing days) |
+| **Frequency & aggregation** | Every 15 minutes (up to `96` readings/day) → averaged to **daily mean** (`bassac_daily.csv`: `1,438` calendar days, `1,327` valid days with `WL`, `111` missing days) |
+| **Observed range (daily mean)** | Min `0.85 m`, Median `1.98 m`, Mean `2.53 m` (`std = 1.30 m`), Max `5.61 m` |
 | **Source** | Massuel, S. et al. (2024), DataSuds (IRD), https://doi.org/10.23708/E97HGV |
+
+**Deep dive:**
+- **Why 15-minute readings must be averaged:** The lower Bassac is tidally influenced during the dry season, rising and falling twice a day by `~0.7 m`. Taking the daily mean (`resample("D").mean()`) removes this twice-daily tidal noise so the model learns river hydrology rather than sensor clock timing.
+- **Extra diagnostic columns saved in `bassac_daily.csv`:** `WL_0700` (the 07:00 AM reading on each day, `1,329` valid days) and `n_readings` (how many 15-min samples were present, mean `88.74`). `WL_0700` is used in `src/06_check_calibration.py` to measure the tidal bias against DHRW's 07:00 AM readings.
 
 ### 2.2 Dataset 2: DHRW Koh Khel Water Level 2024–2026 (`dhrw_water_level_2020_2026.csv`) — TARGET (Part 2)
 
 | Item | Details |
 |---|---|
 | **Role** | Extended target & recent water level (**1 Jul 2024 → 11 Nov 2026**) |
-| **Station used** | **`Koh_Khel`** only (Bassac River in Kandal, station `033402`). The other 6 river columns are dropped. |
+| **Raw size & columns** | `1,498` rows × `8` columns: `date`, `Stung_Treng`, `Kratie`, `Kampong_Cham`, `Chaktomuk`, `Neak_Loeung`, `Koh_Khel`, `Prek_Kdam` |
+| **Station used** | **`Koh_Khel`** only (Bassac River in Kandal, station `033402`, ~15 km upstream of Koh Thum). The other 6 Mekong/Tonle Sap stations are dropped. |
 | **Recorded by** | Department of Hydrology and River Works (DHRW), MOWRAM Cambodia (https://dhrw-cam.org/bulletintbl.php) |
-| **Frequency** | Daily at 07:00 AM |
-| **Rows used** | **`851` continuous days (`2024-07-01` → `2026-11-11`)** after `Bassac_01` ends (`2020–2023` shared rows are used only to calibrate the height scale). |
+| **Frequency & coverage** | Daily manual/gauge reading at **07:00 AM**; flood-season only (`Jun–Nov`) in `2020–2023`, then **continuous year-round** (`851` days) from `2024-07-01` → `2026-11-11` |
+| **Observed range (raw `WL_raw`)** | Min `1.23 m`, Median `4.66 m`, Mean `4.50 m` (`std = 1.90 m`), Max `7.88 m` |
+
+**Deep dive:**
+- **Why raw `Koh_Khel` is ~1.6 m higher than `Bassac_01`:** Koh Khel sits ~15 km upstream and uses a different local zero-gauge datum. It cannot be appended directly to `Bassac_01` without calibration (otherwise there would be a sudden artificial jump in July 2024).
+- **Why `2020–2023` rows are still valuable:** Even though DHRW only published flood-season rows in `2020–2023`, those `645` overlapping days with `Bassac_01` let us fit the linear calibration `0.7936 × Koh_Khel - 0.4725` (`r = 0.9957`) strictly on past data.
 
 ### 2.3 Dataset 3: Kandal Rainfall (`khm-rainfall-subnat-full.csv`) — FEATURE
 
 | Item | Details |
 |---|---|
+| **Role** | Local precipitation & seasonal wetness features for Kandal Province |
+| **Raw size & columns** | `364,650` rows × `15` columns (`date`, `adm_level`, `adm_id`, `PCODE`, `n_pixels`, `rfh`, `rfh_avg`, `r1h`, `r1h_avg`, `r3h`, `r3h_avg`, `rfq`, `r1q`, `r3q`, `version`) covering all Cambodian provinces & districts |
+| **Filter used** | `adm_level == 1` (province level), `PCODE == "KH08"` (Kandal Province), `version != "prelim"` → **`1,647` dekads** (`1981-01-01` → `2026-09-21`) |
+| **Frequency** | **Dekad** = 10-day period starting on the `1st`, `11th`, and `21st` of each month (3 dekads/month; the 3rd dekad has `8–11` days depending on month length) |
+| **Columns used & ranges** | `rfh` (10-day rain: `0.71–235.08 mm`, mean `37.94`), `r1h` (1-month rolling rain: `3.04–552.66 mm`, mean `113.78`), `r3h` (3-month rolling rain: `15.44–1,019.61 mm`, mean `341.54`), `rfq` (rainfall anomaly as % of long-term average: `14.47–393.47%`, `100%` = normal) |
 | **Source** | WFP / HDX (CHIRPS satellite + rain gauges), https://data.humdata.org/dataset/khm-rainfall-subnational |
-| **Frequency** | **Dekad** = 10-day period (`1st`, `11th`, `21st` of each month), Jan 1981 → Oct 2026 |
-| **Filter used** | `adm_level == 1`, `PCODE == "KH08"` (Kandal Province), `version != "prelim"` |
-| **Columns used** | `rfh` (10-day rain mm), `r1h` (1-month rain mm), `r3h` (3-month rain mm), `rfq` (rain % of normal) |
+
+**Deep dive:**
+- **Why filtering `version != "prelim"` matters:** Preliminary satellite estimates can change when final gauge-corrected CHIRPS data arrives; filtering to `final` ensures consistent numbers.
+- **Why dekadal data must be shifted before forward-filling:** A dekad stamped `2024-08-01` summarizes total rain over Aug 1–10. Using it on Aug 2 would leak future rain (Aug 3–10) into that day's prediction. Shifting by 1 dekad guarantees every day only sees completed past 10-day rainfall.
 
 ### 2.4 Dataset 4: Upstream Discharge (`glofas_discharge_phnompenh.csv`) — FEATURE
 
 | Item | Details |
 |---|---|
-| **Column** | Raw `Q` → renamed to **`upstream_discharge`** (cubic metres of water flowing per second) |
-| **Meaning** | 1 cubic metre is ~1,000 litres (one large tank), so `4,120` means ~4,120 tanks of water pass Phnom Penh per second. |
-| **Location** | Grid cell at Phnom Penh (`11.525 N, 104.925 E`), ~55 km upstream of Koh Khel & Koh Thum |
-| **Range & Source** | 1 Jan 2018 → 9 Nov 2026 (daily), Copernicus GloFAS via Open-Meteo API (`r = 0.85` with Bassac WL) |
+| **Role** | Upstream Mekong river flow entering the Bassac branch |
+| **Raw size & columns** | `3,235` rows × `2` columns: `date` and `Q` → renamed to **`upstream_discharge`** (`m³/s`, cubic metres per second) |
+| **Meaning** | `1 m³/s` = ~1,000 litres/sec (one large water tank), so `4,120 m³/s` means ~4,120 tanks of water pass Phnom Penh every second |
+| **Location** | GloFAS grid cell at Phnom Penh (`11.525 N, 104.925 E`), ~55 km upstream of Koh Khel & Koh Thum |
+| **Range & stats** | `2018-01-01` → `2026-11-09` (continuous daily, `0` missing values): Min `8.98`, Median `6,682.44`, Mean `13,951.14`, Max `100,229.51 m³/s` |
+| **Source** | Copernicus GloFAS hydrological model via Open-Meteo Flood API (`r = 0.85` with Bassac `WL`) |
+
+**Deep dive:**
+- **Why upstream discharge is a strong physical predictor:** Most water in the Bassac River comes from the upper Mekong basin (China, Laos, Kratie) rather than local Kandal rain. Because water takes ~1–2 days to travel ~55 km from Phnom Penh to Koh Khel/Koh Thum, changes in `upstream_discharge` give an early physical signal before the water level peaks downstream.
+- **Model caveat:** GloFAS `Q` is a hydrological model reanalysis/simulation (not a physical river gauge), which explains occasional near-zero dry-season values (`8.98 m³/s`).
 
 ---
 
@@ -149,20 +173,39 @@ source code/file and dataset are in Github
 
 ## Part 5 — Features (X) and Target (y)
 
-| # | Column | Role | Meaning | Purpose |
-|---|---|---|---|---|
-| 1 | `WL` | X | Today's water level (m) | Starting point for tomorrow's level |
-| 2 | `WL_lag1` | X | Water level 1 day ago | Yesterday's height |
-| 3 | `WL_lag2` | X | Water level 2 days ago | Short-term trend |
-| 4 | `WL_lag3` | X | Water level 3 days ago | Short-term trend |
-| 5 | `WL_diff` | X | Today minus yesterday (`WL - WL_lag1`) | Daily rate of rise or fall |
-| 6 | `rf_daily` | X | Kandal daily rain rate (mm/day, lagged 1 dekad) | Recent local rain intensity |
-| 7 | `r1h` | X | Kandal 1-month total rain (mm) | Soil wetness |
-| 8 | `r3h` | X | Kandal 3-month total rain (mm) | Monsoon season strength |
-| 9 | `rfq` | X | Kandal rain % of normal (`100` = normal) | Wet vs. dry year anomaly |
-| 10 | `upstream_discharge_lag1` | X | Yesterday's flow at Phnom Penh (`m³/s`) | Upstream water volume heading to Kandal |
-| 11 | `upstream_discharge_diff` | X | Daily change in Phnom Penh flow | Detects incoming upstream flood waves |
-| — | **`WL_next`** | **y** | **Tomorrow's Bassac water level (m)** | **Target to predict** |
+The modeling table combines **11 input features (`X`)** from three physical sources to predict **1 target (`y`)**. Every feature uses information available on **day `t` or earlier** (`t - 1`, `t - 2`, `t - 3`) to predict **tomorrow (`t + 1`)**, ensuring zero future leakage.
+
+### 5.1 Summary of all 11 features & target
+
+| # | Column | Group | Formula / Origin | Units | Role in predicting `WL_next` |
+|---|---|---|---|---|---|
+| 1 | `WL` | Water Level | Water level at day `t` (calibrated if `Koh_Khel`) | m | Strongest baseline anchor; tomorrow rarely jumps far from today |
+| 2 | `WL_lag1` | Water Level | `WL` shifted by 1 day (`t - 1`) | m | Yesterday's height; establishes short-term persistence |
+| 3 | `WL_lag2` | Water Level | `WL` shifted by 2 days (`t - 2`) | m | 2-day memory; captures whether a rise/fall is accelerating or flattening |
+| 4 | `WL_lag3` | Water Level | `WL` shifted by 3 days (`t - 3`) | m | 3-day memory; smooths out 1-day sensor or tide noise |
+| 5 | `WL_diff` | Water Level | `WL(t) - WL(t - 1)` | m/day | **Momentum** — positive = river rising, negative = river falling |
+| 6 | `rf_daily` | Rainfall (KH08) | `rfh / days_in_dekad`, shifted +1 dekad & forward-filled | mm/day | Recent local rainfall intensity over Kandal |
+| 7 | `r1h` | Rainfall (KH08) | 1-month cumulative rain (shifted +1 dekad) | mm | Soil saturation & runoff readiness (wet soil sheds more rain into the river) |
+| 8 | `r3h` | Rainfall (KH08) | 3-month cumulative rain (shifted +1 dekad) | mm | Broad monsoon strength (distinguishes early wet season from late flood season) |
+| 9 | `rfq` | Rainfall (KH08) | `(rfh / rfh_avg) * 100` (shifted +1 dekad) | % | Wet vs. dry year anomaly (`100%` = historical average for that dekad) |
+| 10 | `upstream_discharge_lag1` | Upstream Flow | GloFAS `Q` at Phnom Penh on day `t - 1` | m³/s | Volume of Mekong water already heading south toward Kandal (1–2 day travel time) |
+| 11 | `upstream_discharge_diff` | Upstream Flow | `Q(t) - Q(t - 1)` | m³/s/day | Detects incoming flood waves or sudden upstream drops at Phnom Penh |
+| — | **`WL_next`** | **Target (`y`)** | **`WL` shifted by -1 day (`t + 1`)** | **m** | **Tomorrow's Bassac water level to forecast** |
+
+### 5.2 Why these three feature groups work together
+
+1. **Autoregressive water-level features (`WL`, `WL_lag1..3`, `WL_diff`):**
+   - River height has strong day-to-day inertia (autocorrelation > `0.99`), so `WL` alone gives a strong starting point (`Naive Baseline`: `WL_next = WL`).
+   - Adding `WL_diff` and 2–3 day lags lets models tell the difference between a river at `3.5 m` that is **rising rapidly** (`+0.15 m/day`) vs. one at `3.5 m` that is **draining** (`-0.10 m/day`).
+2. **Kandal rainfall features (`rf_daily`, `r1h`, `r3h`, `rfq`):**
+   - Captures local catchment wetness and monsoon phase across three timescales: **10-day** (`rf_daily`, `rfq`), **1-month** (`r1h`), and **3-month** (`r3h`).
+   - Even when `WL` is low in June, high `r1h`/`r3h` signals that monsoon runoff is building up.
+3. **Upstream discharge features (`upstream_discharge_lag1`, `upstream_discharge_diff`):**
+   - Phnom Penh sits ~55 km upstream (`1–2` days travel time). Using `lag1` and daily `diff` gives the model an early physical warning of an arriving Mekong flood pulse before it fully shows up at Koh Khel or Koh Thum.
+
+### 5.3 Metadata & leakage guards in the modeling table
+- **Metadata columns (never passed as `X`):** `date` (used only for chronological splitting & seasonal evaluation) and `station_source` (`"Bassac_01"` vs `"Koh_Khel"`).
+- **Row dropping after lag/lead construction:** Creating 3-day lags (`lag3`) and 1-day lead (`WL_next`) produces `NaN` values at the start/end of the series and around the **June 2024 station gap** (`2024-05-27` → `2024-06-30`). Dropping incomplete rows yields clean, leak-free `(X, y)` samples without interpolating across missing days.
 
 ---
 

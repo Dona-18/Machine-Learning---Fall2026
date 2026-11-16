@@ -35,7 +35,7 @@ def get_project_root() -> Path:
         return cwd
     if (cwd / "Machine-Learning---Fall2026" / "data" / "processed").exists():
         return cwd / "Machine-Learning---Fall2026"
-    return Path(__file__).resolve().parent.parent
+    return Path(__file__).resolve().parent.parent.parent
 
 
 def main() -> None:
