@@ -49,10 +49,21 @@ source code/file and dataset are in Github
 
 **Key idea:** Most Bassac water comes from upstream along the Mekong; local Kandal rain adds a smaller boost. Therefore, **past water level** and **upstream flow (`upstream_discharge`)** are the primary predictors.
 
-### 1.3 Why forecasting matters
-- **Farming:** Farmers time rice planting and harvest around the annual flood.
-- **Early warning:** Predicting water height 1 day ahead helps communities prepare.
-- **Changing river:** Upstream dams and climate shifts make historical averages less reliable, so data-driven models help.
+### 1.3 Project Motivation & Why Forecasting Matters
+- **Agricultural livelihoods in Kandal:** Communities along the lower Bassac depend on the annual flood pulse for recession rice, irrigation scheduling, and riverbank farming. Knowing tomorrow's water level helps farmers time planting, pumping, and harvesting.
+- **Flood early warning & infrastructure safety:** Rapid monsoon rises in Sep–Oct can inundate low-lying communes and roads. Even a **1-day-ahead forecast** gives local authorities and households time to protect livestock, boats, and property.
+- **A changing, non-stationary Mekong:** Upstream hydropower dams and shifting monsoon patterns mean historical calendar averages no longer match actual river behavior. A data-driven ML model adapts to real-time water levels and upstream discharge rather than relying on static historical norms.
+- **Why ML over a simple rule (`tomorrow = today`):** While river height changes slowly on calm days, during incoming Mekong flood pulses `today's level` lags behind. Combining recent water-level momentum (`WL_diff`) with upstream Phnom Penh discharge (`Q_diff`) lets ML models anticipate sudden rises or drops before they arrive in Kandal.
+
+### 1.4 Where the Datasets Come From & Why Each Was Chosen
+
+| Dataset | Source & Origin | Why We Use It |
+|---|---|---|
+| **`Bassac_01_ori.csv`** (`2020–2024`) | **ITC (Cambodia) & IRD / UMR G-EAU (France)** via DataSuds open research repository | High-frequency (15-min) research-grade logger at Koh Thum, Kandal. Provides a clean, year-round baseline target after daily averaging removes ~0.7 m tidal swings. |
+| **`dhrw_water_level_2020_2026.csv`** (`2020–2026`) | **Department of Hydrology and River Works (DHRW)**, Ministry of Water Resources and Meteorology (MOWRAM), Cambodia | Official government daily river bulletins (`Koh_Khel` station). Needed to extend the timeline past May 2024 through **Nov 2026**; its `2020–2023` flood-season overlap (`r = 0.9957`) lets us calibrate it onto the `Bassac_01` scale. |
+| **`glofas_discharge_phnompenh.csv`** (`2018–2026`) | **Copernicus GloFAS** hydrological model accessed via the **Open-Meteo Flood API** | Provides continuous daily Mekong river discharge (`m³/s`) at Phnom Penh (~55 km upstream). Because water takes 1–2 days to reach Kandal, its daily change (`Q_diff`, `r = +0.293` with `WL_next - WL`) acts as an early physical warning signal. |
+
+*(Note: A 4th dataset — WFP/CHIRPS 10-day Kandal rainfall — was initially inspected and later dropped because upstream Mekong flow dominates Bassac water levels, 10-day rainfall showed near-zero correlation with daily water-level changes, and it ended early on `2026-09-21`.)*
 
 ---
 
