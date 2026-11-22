@@ -1,0 +1,5 @@
+Model,MAE_m,RMSE_m,R2,Gain_vs_Naive_%
+Ridge,0.03777,0.06063,0.99869,34.6
+XGBoost,0.05695,0.09221,0.99697,1.38
+NaiveBaseline,0.05775,0.08458,0.99745,0.0
+RandomForest,0.05967,0.09381,0.99687,-3.31

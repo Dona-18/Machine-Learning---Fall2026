@@ -13,11 +13,11 @@
 | **2. Data Cleaning** | `src/cleaning/01_clean_bassac.py`, `02_clean_kohkhel.py`, `04_clean_glofas.py` | Done | Generated 3 daily tables in `data/processed/` |
 | **3. Quality & Calibration Checks** | `src/cleaning/05_check_clean.py`, `06_check_calibration.py` | Done | Verified `Bassac_01` vs. `Koh_Khel` (`r = 0.9957`, `645` shared days); 10 plots saved in `reports/` |
 | **4. Documentation & Feature Selection** | `docs/data_guide.md`, `docs/project_progress.md` | Done | Documented schemas; decided to **keep GloFAS** (`Q_diff` `r = +0.293` with `WL_next - WL`) and **drop Kandal rainfall** |
-| **5. Load Data** | `src/ml/1_load_data.py` | Pending | Load `bassac_daily.csv`, `kohkhel_daily.csv`, `glofas_daily.csv` |
-| **6. Prepare & Calibrate** | `src/ml/2_prepare_data.py` | Pending | Apply `0.7936 * WL_raw - 0.4725` to `Koh_Khel` (`2024–2026`), merge timeline, join GloFAS |
-| **7. Feature Engineering** | `src/ml/3_features.py` | Pending | Build 7 leak-free features + `WL_next` target; drop edge/gap `NaN`s |
-| **8. Chronological Split & Training** | `src/ml/4_train.py` | Pending | Train Naive Baseline, Ridge, Random Forest, XGBoost (no shuffling) |
-| **9. Evaluation & Presentation Charts** | `src/ml/5_evaluate.py` | Pending | Score MAE, RMSE, R²; feature importance; Actual vs. Predicted plots |
+| **5. Load Data** | `src/ml/1_load_data.py` | Done | Loaded `bassac_daily.csv`, `kohkhel_daily.csv`, `glofas_daily.csv` |
+| **6. Prepare & Calibrate** | `src/ml/2_prepare_data.py` | Done | Applied `0.7936 * WL_raw - 0.4725` to `Koh_Khel` (`2024–2026`), aligned `2,335` calendar days, joined GloFAS |
+| **7. Feature Engineering** | `src/ml/3_features.py`, `tests/test_leakage.py` | Done | Built 7 leak-free features + `WL_next` (`2,108` clean rows); all 4 leakage tests pass |
+| **8. Chronological Split & Training** | `src/ml/4_train.py` | Done | Train (`1,315` rows, `2020–2024`) / Test (`793` rows, `2024–2026`); 3-fold `TimeSeriesSplit` + saved models in `models/` |
+| **9. Evaluation & Presentation Charts** | `src/ml/5_evaluate.py`, `reports/ml/` | Done | Ridge achieved `MAE = 0.03777 m` (`34.60%` better than Naive `0.05775 m`); charts saved in `reports/ml/` |
 
 ---
 
@@ -31,11 +31,11 @@
 
 ---
 
-## 3. Model Results Log *(To be filled after running `src/4_train.py` & `src/5_evaluate.py`)*
+## 3. Model Results Log (`2024-07-04` → `2026-11-03`, `793` Unseen Test Days)
 
 | Model | MAE (m) | RMSE (m) | R² | Beats Naive Baseline? |
 |---|---|---|---|---|
-| **Naive Baseline (`WL_next = WL`)** | TBD | TBD | TBD | — |
-| **Ridge Regression** | TBD | TBD | TBD | TBD |
-| **Random Forest** | TBD | TBD | TBD | TBD |
-| **XGBoost** | TBD | TBD | TBD | TBD |
+| **Ridge Regression** | **0.03777** | **0.06063** | **0.99869** | **Yes (+34.60% MAE gain)** |
+| **XGBoost** | 0.05695 | 0.09221 | 0.99697 | Yes (+1.38% MAE gain) |
+| **Naive Baseline (`WL_next = WL`)** | 0.05775 | 0.08458 | 0.99745 | — |
+| **Random Forest** | 0.05967 | 0.09381 | 0.99687 | No (-3.31%) |

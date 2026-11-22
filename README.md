@@ -10,9 +10,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-## Run (from the repo root, in order)
-python src/cleaning/01_clean_bassac.py
-python src/cleaning/02_clean_kohkhel.py
-python src/cleaning/04_clean_glofas.py
-python src/cleaning/05_check_clean.py
-python src/cleaning/06_check_calibration.py
+## Run (in order, inside `notebooks/`)
+1. `notebooks/00_data_cleaning_and_calibration.ipynb`
+2. `notebooks/01_data_prep_and_features.ipynb`
+3. `notebooks/02_train_and_evaluate.ipynb`
