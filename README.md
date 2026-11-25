@@ -45,14 +45,14 @@ All 10 features use **only data from today (`t`) or earlier** to prevent future 
 
 ---
 
-## 4. Final Test Set Results (`2024–2026`, `858` Unseen Days)
+## 4. Final Test Set Results (`80/20` Split: `2025-08-09` → `2026-11-08`, `457` Unseen Days)
 
-| Model | MAE (m) | RMSE (m) | R² | Gain vs. Naive | Fast-Change Days MAE (`n=117`) |
+| Model | MAE (m) | RMSE (m) | R² | Gain vs. Naive | Fast-Change Days MAE (`n=52`) |
 |---|---|---|---|---|---|
-| **Ridge Regression** | **0.03715** | **0.05980** | **0.99872** | **+36.19%** | **9.80 cm** |
-| **NaiveBaseline (`WL_next = WL`)** | 0.05822 | 0.08636 | 0.99732 | 0.00% | 17.68 cm |
-| **XGBoost** | 0.06054 | 0.09857 | 0.99651 | -3.99% | 11.25 cm |
-| **RandomForest** | 0.06227 | 0.09871 | 0.99650 | -6.96% | 12.67 cm |
+| **Ridge Regression** | **0.03189** | **0.05219** | **0.99915** | **+38.27%** | **9.53 cm** |
+| **NaiveBaseline (`WL_next = WL`)** | 0.05165 | 0.08188 | 0.99790 | 0.00% | 18.18 cm |
+| **RandomForest** | 0.05518 | 0.09255 | 0.99732 | -6.83% | 12.16 cm |
+| **XGBoost** | 0.05542 | 0.09409 | 0.99723 | -7.29% | 10.59 cm |
 
 ---
 
@@ -67,4 +67,4 @@ pip install -r requirements.txt
 Run the 3 notebooks in order inside `notebooks/`:
 1. `notebooks/01_eda_and_cleaning.ipynb` — raw audit, tidal averaging, gap handling, and daily visualizations.
 2. `notebooks/02_calibration_and_features.ipynb` — station calibration (`r = 0.9957`), `2020–2026` merge, 10 features + `WL_next`, and leakage tests.
-3. `notebooks/03_train_and_evaluate.ipynb` — chronological split (`1,427` Train / `858` Test), `TimeSeriesSplit`, model training, and evaluation plots (`reports/ml/`).
+3. `notebooks/03_train_and_evaluate.ipynb` — chronological `80/20` split (`1,828` Train / `457` Test), `TimeSeriesSplit`, model training, and evaluation plots (`reports/ml/`).
